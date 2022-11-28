@@ -1,0 +1,96 @@
+Working manual:
+
+create model archive model from model ResNet50Mse.pt: (ubuntu)
+torch-model-archiver --model-name resnet50mse --version 1.0 --model-file resnet_50_mse_serving_model.py --serialized-file ResNet50Mse.pt --handler  resnet_mse_handler.py
+
+torch-model-archiver --model-name FernetBert --version 1.0 --model-file fernet_bert_serving_model.py --serialized-file FernetClassifier.pt \
+--handler fernet_bert_handler.py \
+--extra-files "config.json,special_tokens_map.json,tokenizer.json,tokenizer_config.json,vocab.txt,pytorch_model.bin,index_to_name.json" \
+--export-path model_store/ -f
+
+start torchserve
+torchserve --start --model-store model_store --models FernetBert=FernetBert.mar
+torchserve --start --model-store model_store --models FernetBert=FernetBert.mar --ncs
+
+torchserve --start --model-store model_store --models resnet50mse=resnet50mse.mar
+
+ubuntu resource folder path
+/mnt/c/Users/skoum/OneDrive/Dokumenty/IdeaProjects/stance-net/output/serving/
+/mnt/c/Users/skoum/OneDrive/Dokumenty/IdeaProjects/captcha-net/output/serving/resources/
+
+HEALT CHECK
+curl http://192.168.0.20:8080/ping
+
+curl http://localhost:8080/ping
+
+Predictions API
+curl -X POST https://fnn-demo.dev.mit-consulting.cz/predictions/FernetBert -T resources/pro1.txt
+
+curl -X POST http://localhost:8080/predictions/FernetBert -T resources/pro1.txt
+
+curl http://localhost:8080/predictions/resnet50mse -F "data=@1.jpg"
+
+curl -X POST http://127.0.0.1:8080/predictions/FernetBert -T resources/proti1.txt
+
+REGISTER MODEL
+curl -X POST  "http://localhost:8081/models?url=resnet50mse.mar"
+
+curl -X POST  "http://localhost:8081/models?url=FernetBert.mar"
+
+DESCRIBE MODEL
+curl http://localhost:8081/models/resnet50mse
+
+curl http://localhost:8081/models/FernetBert
+
+curl http://192.168.0.20:8081/models/FernetBert
+
+SCALE WORKERS
+curl -v -X PUT http://localhost:8081/models/resnet50mse?min_worker=1
+SCALE DOWN
+curl -v -X PUT http://localhost:8081/models/FernetBert?max_worker=4
+
+LIST ALL MODELS
+curl http://192.168.0.20:8081/models/
+
+curl http://localhost:8081/models
+
+win resource folder path
+/Users/skoum/OneDrive/Dokumenty/IdeaProjects/stance-net/output/serving/
+
+/Users/skoum/OneDrive/Dokumenty/IdeaProjects/captcha-net/output/serving/resources/
+
+Win start command docker:
+docker run --rm --shm-size=1g ^
+        --ulimit memlock=-1 ^
+        --ulimit stack=67108864 ^
+        -p8080:8080 ^
+        -p8081:8081 ^
+        -p8082:8082 ^
+        -p7070:7070 ^
+        -p7071:7071 ^
+        --mount type=bind,source=%cd%/model_store,target=/model_store torchserve-transformers torchserve --model-store=/model_store --models FernetBert=FernetBert.mar --ts-config config.properties
+
+docker run --rm --shm-size=1g ^
+        --ulimit memlock=-1 ^
+        --ulimit stack=67108864 ^
+        -p8080:8080 ^
+        -p8081:8081 ^
+        -p8082:8082 ^
+        -p7070:7070 ^
+        -p7071:7071 ^
+        --mount type=bind,source=%cd%/model_store,target=/model_store pytorch/torchserve:0.6.0-cpu torchserve --model-store=/model_store --models FernetBert=FernetBert.mar
+
+docker run --rm --shm-size=1g ^
+        --ulimit memlock=-1 ^
+        --ulimit stack=67108864 ^
+        -p8080:8080 ^
+        -p8081:8081 ^
+        -p8082:8082 ^
+        -p7070:7070 ^
+        -p7071:7071 ^
+        --mount type=bind,source=%cd%/model_store,target=/model_store pytorch/torchserve:0.6.0-cpu torchserve --model-store=/model_store --models resnet50mse=resnet50mse.mar
+
+
+
+
+
